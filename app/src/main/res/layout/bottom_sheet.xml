@@ -9,15 +9,38 @@
 
     <ImageView
         android:id="@+id/ic_location"
-        android:layout_width="25dp"
-        android:layout_height="25dp"
-        android:layout_marginLeft="@dimen/margin_small"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_marginLeft="@dimen/margin_normal"
         android:layout_marginTop="@dimen/margin_normal"
         android:maxWidth="30dp"
         android:maxHeight="30dp"
         android:src="@drawable/ic_bet_shop_location"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/green" />
+
+    <ImageView
+        android:id="@+id/btnClose"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_margin="@dimen/margin_normal"
+        android:src="@drawable/ic_close"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/gray" />
+
+    <TextView
+        android:id="@+id/txtName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/margin_large"
+        android:text="@string/text_name_placeholder"
+        android:textAlignment="center"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintStart_toEndOf="@id/ic_location"
+        app:layout_constraintTop_toTopOf="@id/ic_location" />
 
     <TextView
         android:id="@+id/txtAddress"
@@ -26,69 +49,85 @@
         android:layout_marginLeft="@dimen/margin_large"
         android:text="@string/text_address_placeholder"
         android:textAlignment="center"
+        android:textColor="@color/black"
         android:textSize="16sp"
         app:layout_constraintStart_toEndOf="@id/ic_location"
-        app:layout_constraintTop_toTopOf="@id/ic_location" />
+        app:layout_constraintTop_toBottomOf="@id/txtName" />
+
+    <TextView
+        android:id="@+id/txtCityCounty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/margin_large"
+        android:text="@string/text_city_county_placeholder"
+        android:textAlignment="center"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        app:layout_constraintStart_toEndOf="@id/ic_location"
+        app:layout_constraintTop_toBottomOf="@id/txtAddress" />
 
     <ImageView
         android:id="@+id/ic_phone"
-        android:layout_width="25dp"
-        android:layout_height="25dp"
-        android:layout_marginLeft="@dimen/margin_small"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
         android:maxWidth="30dp"
         android:maxHeight="30dp"
         android:src="@drawable/ic_bet_shop_phone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/txtPhone" />
+        app:layout_constraintStart_toStartOf="@id/ic_location"
+        app:layout_constraintTop_toTopOf="@id/txtPhone"
+        app:tint="@color/green" />
 
     <TextView
         android:id="@+id/txtPhone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/margin_normal"
         android:layout_marginLeft="@dimen/margin_large"
+        android:layout_marginTop="@dimen/margin_normal"
         android:text="@string/text_phone_placeholder"
         android:textAlignment="center"
+        android:textColor="@color/black"
         android:textSize="16sp"
         app:layout_constraintStart_toEndOf="@id/ic_phone"
-        app:layout_constraintTop_toBottomOf="@id/txtAddress"/>
+        app:layout_constraintTop_toBottomOf="@id/txtCityCounty" />
 
     <ImageView
         android:id="@+id/ic_time"
-        android:layout_width="25dp"
-        android:layout_height="25dp"
-        android:layout_marginLeft="@dimen/margin_small"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
         android:maxWidth="30dp"
         android:maxHeight="30dp"
         android:src="@drawable/ic_bet_shop_hours"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/txtOpenHours" />
+        app:layout_constraintStart_toStartOf="@id/ic_phone"
+        app:layout_constraintTop_toTopOf="@id/txtOpenHours"
+        app:tint="@color/green" />
 
     <TextView
         android:id="@+id/txtOpenHours"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/margin_normal"
         android:layout_marginLeft="@dimen/margin_large"
+        android:layout_marginTop="@dimen/margin_normal"
         android:text="@string/text_open_now"
         android:textAlignment="center"
+        android:textColor="@color/black"
         android:textSize="16sp"
         app:layout_constraintStart_toEndOf="@id/ic_time"
-        app:layout_constraintTop_toBottomOf="@id/txtPhone"/>
+        app:layout_constraintTop_toBottomOf="@id/txtPhone" />
 
     <TextView
         android:id="@+id/txtRoute"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/margin_normal"
         android:layout_marginLeft="@dimen/margin_large"
+        android:layout_marginTop="@dimen/margin_normal"
+        android:paddingBottom="@dimen/margin_large"
         android:text="@string/text_route_btn"
         android:textAlignment="center"
+        android:textColor="@color/blue_link"
         android:textSize="16sp"
         android:textStyle="bold"
         app:layout_constraintStart_toEndOf="@id/ic_time"
-        app:layout_constraintTop_toBottomOf="@id/txtOpenHours"
-        android:layout_marginBottom="@dimen/margin_large"/>
+        app:layout_constraintTop_toBottomOf="@id/txtOpenHours" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
