@@ -3,10 +3,7 @@ package com.ikresimir.betshops
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Dialog
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
@@ -25,13 +22,18 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.*
+import java.time.LocalTime
+import java.util.*
+import java.util.Calendar.*
 
 
 class MainActivity : AppCompatActivity(),
-    OnMapReadyCallback, GoogleMap.OnMarkerClickListener{
+    OnMapReadyCallback, GoogleMap.OnMarkerClickListener, DialogInterface.OnDismissListener{
 
     private lateinit var map: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var selectedMarker: Marker
+    private var isMarkerSelected: Boolean = false
 
     companion object{
         private const val LOCATION_REQUEST_CODE = 1
@@ -42,14 +44,14 @@ class MainActivity : AppCompatActivity(),
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        checkCurrentTime()
         if(!isLocationEnabled(this)){
             askForLocationDialog()
         }
 
-        val buttonSheet: Button = findViewById(R.id.btnTest)
-        buttonSheet.setOnClickListener {
-            showLocationDetailsDialog()
-        }
+        val filter = IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION)
+        filter.addAction(Intent.ACTION_PROVIDER_CHANGED)
+        this.registerReceiver(gpsSwitchStateReceiver, filter)
 
         val mapFragment: SupportMapFragment =
             supportFragmentManager.findFragmentById(R.id.mapFragment) as SupportMapFragment
@@ -81,13 +83,23 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun showLocationDetailsDialog() {
+    private fun showLocationDetailsDialog(locationName: String?,locationAddress: String?, locationCityCounty: String?, locationPhone: String?, locationOpenHours: String?) {
         val dialog = Dialog(this)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setContentView(R.layout.bottom_sheet)
 
         val closeButton: ImageView = dialog.findViewById(R.id.btnClose)
         val routeButton: TextView = dialog.findViewById(R.id.txtRoute)
+        val txtName: TextView = dialog.findViewById(R.id.txtName)
+        txtName.text = locationName
+        val txtAddress: TextView = dialog.findViewById(R.id.txtAddress)
+        txtAddress.text = locationAddress
+        val txtCityCounty: TextView = dialog.findViewById(R.id.txtCityCounty)
+        txtCityCounty.text = locationCityCounty
+        val txtPhone: TextView = dialog.findViewById(R.id.txtPhone)
+        txtPhone.text = locationPhone
+        val txtOpenHours: TextView = dialog.findViewById(R.id.txtOpenHours)
+        txtOpenHours.text = checkCurrentTime()
 
         dialog.show()
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -102,6 +114,8 @@ class MainActivity : AppCompatActivity(),
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:44.787197,20.457273?q=44.787197,20.457273"+" ("+"test"+")"))
             startActivity(intent)
         }
+
+        dialog.setOnDismissListener(this)
     }
 
     private fun isLocationEnabled(context: Context): Boolean {
@@ -117,25 +131,13 @@ class MainActivity : AppCompatActivity(),
                 .position(LatLng(45.815010,15.981919))
                 .icon(icon)
         )
-    }
 
-
-    override fun onResume() {
-        super.onResume()
-        if(isLocationEnabled(this)){
-            Toast.makeText(this,"TESTING: Location is enabled", Toast.LENGTH_SHORT).show()
-            centerMapOnUser()
-        }
-
-        //Testing broadcast
-        val filter = IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION)
-        filter.addAction(Intent.ACTION_PROVIDER_CHANGED)
-        this.registerReceiver(gpsSwitchStateReceiver, filter)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        this.unregisterReceiver(gpsSwitchStateReceiver)
+        googleMap.addMarker(
+            MarkerOptions()
+                .title("Testing")
+                .position(LatLng(45.803714752197266,15.992773056030273))
+                .icon(icon)
+        )
     }
 
     private val gpsSwitchStateReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -215,6 +217,48 @@ class MainActivity : AppCompatActivity(),
         map.addMarker(markerOptions)
     }
 
-    override fun onMarkerClick(p0: Marker) = false
+    override fun onMarkerClick(marker: Marker): Boolean {
+        //In case of two fast selects, user can set icon for two selected markers at the same time.
+        if (isMarkerSelected == true){
+            var icon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_normal)
+            selectedMarker.setIcon(icon)
+        }
+
+        var icon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_active)
+        marker.hideInfoWindow()
+        marker.setIcon(icon)
+        selectedMarker = marker
+        showLocationDetailsDialog(marker.title,"Zagrebačka 13", "Piškorevci - Đakovo", "031/854-140", "08:00 - 16:00")
+        isMarkerSelected = true
+
+        return true
+    }
+
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        this.unregisterReceiver(gpsSwitchStateReceiver)
+    }
+
+    // If the current time is between 08:00 - 16:00, the shops are open.
+    private fun checkCurrentTime(): String{
+        val currentTime = getInstance().get(HOUR_OF_DAY)
+
+        if (currentTime >= 8 && currentTime < 16){
+            return "Open now until 16:00"
+        }
+        else
+            return "Opens tomorrow at 08:00"
+    }
+
+
+    override fun onDismiss(p0: DialogInterface?) {
+        if (selectedMarker != null){
+            var icon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_normal)
+            selectedMarker.setIcon(icon)
+            isMarkerSelected = false
+        }
+    }
 
 }
