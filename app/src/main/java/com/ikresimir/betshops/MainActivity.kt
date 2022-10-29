@@ -23,7 +23,7 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.*
 import com.ikresimir.betshops.api.ApiRequests
-import com.ikresimir.betshops.api.BetshopsList
+import com.ikresimir.betshops.model.BetshopsList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch

@@ -1,4 +1,4 @@
-package com.ikresimir.betshops.api
+package com.ikresimir.betshops.model
 
 data class Location(
     val lat: Double,

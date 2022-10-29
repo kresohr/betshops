@@ -1,4 +1,4 @@
-package com.ikresimir.betshops.api
+package com.ikresimir.betshops.model
 
 data class Betshop(
     val address: String,
