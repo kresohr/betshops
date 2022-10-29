@@ -5,7 +5,7 @@
     <string name="text_name_placeholder">1066 Budapest</string>
     <string name="text_address_placeholder">Oktogon Ter 4.</string>
     <string name="text_city_county_placeholder">1. Sz. Lottozo</string>
-    <string name="text_phone_placeholder">311–56–44</string>
+    <string name="text_phone_placeholder">-</string>
     <string name="text_open_tomorrow">Open tomorrow at 8:00–16:00</string>
     <string name="text_gps_header">Location permission</string>
     <string name="text_gps_subheader">Turn on location access to discover BetShop locations around you</string>

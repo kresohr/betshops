@@ -22,17 +22,27 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.*
-import java.time.LocalTime
-import java.util.*
+import com.ikresimir.betshops.api.ApiRequests
+import com.ikresimir.betshops.api.BetshopsList
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
+import retrofit2.awaitResponse
+import retrofit2.converter.gson.GsonConverterFactory
 import java.util.Calendar.*
 
 
+const val BASE_URL = "https://interview.superology.dev/"
+
 class MainActivity : AppCompatActivity(),
-    OnMapReadyCallback, GoogleMap.OnMarkerClickListener, DialogInterface.OnDismissListener{
+    OnMapReadyCallback, GoogleMap.OnMarkerClickListener, DialogInterface.OnDismissListener, GoogleMap.OnCameraIdleListener{
 
     private lateinit var map: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var selectedMarker: Marker
+    private var betshopsList = BetshopsList(arrayOf(),0)
     private var isMarkerSelected: Boolean = false
 
     companion object{
@@ -61,6 +71,41 @@ class MainActivity : AppCompatActivity(),
         centerMapOnUser()
     }
 
+    private fun getCurrentData(latLngBounds: LatLngBounds){
+        var icon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_normal)
+        val api = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiRequests::class.java)
+        map.clear()
+
+        val northEastLat = latLngBounds.northeast.latitude
+        val northEastLon = latLngBounds.northeast.longitude
+        val southWestLat = latLngBounds.southwest.latitude
+        val southWestLon = latLngBounds.southwest.longitude
+
+        GlobalScope.launch(Dispatchers.IO){
+            val response = api.getBetShops(
+                BASE_URL+"betshops?boundingBox="+northEastLat+","+northEastLon+","+southWestLat+","+southWestLon).awaitResponse()
+            if (response.isSuccessful){
+                val data = response.body()!!
+                betshopsList = data
+
+                withContext(Dispatchers.Main){
+                    for (b in betshopsList.betshops){
+                        val currentLatLong = LatLng(b.location.lat, b.location.lng)
+                        val markerOptions = MarkerOptions().position(currentLatLong)
+                        markerOptions.title(b.name)
+                        markerOptions.icon(icon)
+                        map.addMarker(markerOptions)
+                    }
+                }
+            }
+        }
+
+    }
+
     private fun askForLocationDialog() {
         val dialog = Dialog(this)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -83,7 +128,7 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun showLocationDetailsDialog(locationName: String?,locationAddress: String?, locationCityCounty: String?, locationPhone: String?, locationOpenHours: String?) {
+    private fun showLocationDetailsDialog(locationName: String?,locationAddress: String?, locationCityCounty: String?) {
         val dialog = Dialog(this)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setContentView(R.layout.bottom_sheet)
@@ -96,8 +141,6 @@ class MainActivity : AppCompatActivity(),
         txtAddress.text = locationAddress
         val txtCityCounty: TextView = dialog.findViewById(R.id.txtCityCounty)
         txtCityCounty.text = locationCityCounty
-        val txtPhone: TextView = dialog.findViewById(R.id.txtPhone)
-        txtPhone.text = locationPhone
         val txtOpenHours: TextView = dialog.findViewById(R.id.txtOpenHours)
         txtOpenHours.text = checkCurrentTime()
 
@@ -107,6 +150,7 @@ class MainActivity : AppCompatActivity(),
         dialog.window?.setGravity(Gravity.BOTTOM)
         dialog.window?.setDimAmount(0F)
         dialog.window?.setBackgroundDrawableResource(R.color.white)
+
         closeButton.setOnClickListener {
             dialog.dismiss()
         }
@@ -121,23 +165,6 @@ class MainActivity : AppCompatActivity(),
     private fun isLocationEnabled(context: Context): Boolean {
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return LocationManagerCompat.isLocationEnabled(locationManager)
-    }
-
-    private fun addMarkers(googleMap: GoogleMap){
-        var icon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_normal)
-        googleMap.addMarker(
-            MarkerOptions()
-                .title("Testing")
-                .position(LatLng(45.815010,15.981919))
-                .icon(icon)
-        )
-
-        googleMap.addMarker(
-            MarkerOptions()
-                .title("Testing")
-                .position(LatLng(45.803714752197266,15.992773056030273))
-                .icon(icon)
-        )
     }
 
     private val gpsSwitchStateReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -161,8 +188,7 @@ class MainActivity : AppCompatActivity(),
             if (location != null) {
                 val currentLatLong = LatLng(location.latitude, location.longitude)
                 placeUserLocationMarker(currentLatLong)
-                map.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLong, 12f))
-                Toast.makeText(baseContext,"TESTING: MAP CENTERED ON USER", Toast.LENGTH_SHORT).show()
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLong, 15f))
             }
 
         }
@@ -173,9 +199,9 @@ class MainActivity : AppCompatActivity(),
 
         map = googleMap
         map.uiSettings.isMyLocationButtonEnabled = false
-        map.setOnMarkerClickListener(this)
+        map.setOnMarkerClickListener (this)
+        map.setOnCameraIdleListener (this)
         setUpMap()
-        addMarkers(map)
     }
 
     @SuppressLint("MissingPermission")
@@ -206,9 +232,6 @@ class MainActivity : AppCompatActivity(),
             centerMapOnUser()
             return
         }
-        else{
-            Toast.makeText(this,"TESTING: Location not enabled yet.", Toast.LENGTH_SHORT).show()
-        }
     }
 
     private fun placeUserLocationMarker(currentLatLong: LatLng){
@@ -218,7 +241,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onMarkerClick(marker: Marker): Boolean {
-        //In case of two fast selects, user can set icon for two selected markers at the same time.
+        //Prevent user from doing fast selection of two pins at the same time
         if (isMarkerSelected == true){
             var icon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_normal)
             selectedMarker.setIcon(icon)
@@ -228,9 +251,15 @@ class MainActivity : AppCompatActivity(),
         marker.hideInfoWindow()
         marker.setIcon(icon)
         selectedMarker = marker
-        showLocationDetailsDialog(marker.title,"Zagrebačka 13", "Piškorevci - Đakovo", "031/854-140", "08:00 - 16:00")
-        isMarkerSelected = true
 
+        //Find corresponding marker and add details
+        for (b in betshopsList.betshops){
+            if (b.location.lat == marker.position.latitude && b.location.lng == marker.position.longitude){
+                showLocationDetailsDialog(b.name.trim(),b.address, b.city + " - " + b.county)
+                isMarkerSelected = true
+                break
+            }
+        }
         return true
     }
 
@@ -259,6 +288,11 @@ class MainActivity : AppCompatActivity(),
             selectedMarker.setIcon(icon)
             isMarkerSelected = false
         }
+    }
+
+    override fun onCameraIdle() {
+        val curScreen: LatLngBounds = map.projection.visibleRegion.latLngBounds
+        getCurrentData(curScreen)
     }
 
 }
