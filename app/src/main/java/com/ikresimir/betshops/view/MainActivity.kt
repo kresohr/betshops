@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.provider.Settings
 import com.ikresimir.betshops.R
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.Window
 import android.widget.*
@@ -23,10 +24,12 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.*
 import com.google.maps.android.clustering.ClusterManager
+import com.google.maps.android.clustering.view.DefaultClusterRenderer
 import com.ikresimir.betshops.data.Repository
 import com.ikresimir.betshops.model.BetshopsList
 import com.ikresimir.betshops.model.MyClusterItem
 import com.ikresimir.betshops.util.CustomClusterRenderer
+import com.ikresimir.betshops.util.CustomInfoWindow
 import com.ikresimir.betshops.util.VisibleBoundsAlgorithm
 import kotlinx.coroutines.*
 
@@ -73,6 +76,7 @@ class MainActivity : AppCompatActivity(),
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     private fun getRepositoryData() {
         val repository = Repository()
         if (repository.isOnline(this)) {
@@ -166,6 +170,7 @@ class MainActivity : AppCompatActivity(),
 
         map = googleMap
         map.uiSettings.isMyLocationButtonEnabled = false
+        map.uiSettings.isMapToolbarEnabled = false
         clusterManager = ClusterManager<MyClusterItem>(this, map)
         map.setOnMarkerClickListener(clusterManager)
         map.setOnCameraIdleListener(clusterManager)
@@ -174,37 +179,43 @@ class MainActivity : AppCompatActivity(),
         requestLocationPermission()
     }
 
+    @SuppressLint("PotentialBehaviorOverride")
     private fun setUpClusterMap() {
         // Custom algorithm for clustering (Uses quad tree)
         val visibleBoundsAlgorithm = VisibleBoundsAlgorithm<MyClusterItem>(map)
         clusterManager.setAlgorithm(visibleBoundsAlgorithm)
 
-        GlobalScope.launch {
+        /** Delayed so the JSON response can be added to the list
+         *  if the list is still empty, delay for another 3 seconds
+         *  and try again.
+         */
+        GlobalScope.launch(Dispatchers.Main) {
             delay(4000L)
-            for (b in betshopsList.betshops) {
-                clusterManager.addItem(
-                    MyClusterItem(
-                        b.location.lat,
-                        b.location.lng,
-                        b.name,
-                        b.address
-                    )
-                )
+            if (betshopsList.count != 0){
+                addItemsToMap()
             }
+            else{
+                delay(3000L)
+                addItemsToMap()
+            }
+
         }
         clusterManager.cluster()
 
-        var customClusterRenderer = CustomClusterRenderer(this,map,clusterManager)
+        val customClusterRenderer = CustomClusterRenderer(this,map,clusterManager)
         clusterManager.renderer = customClusterRenderer
-
+        clusterManager.markerCollection.setInfoWindowAdapter(CustomInfoWindow(LayoutInflater.from(this)))
+        map.setInfoWindowAdapter(clusterManager.getMarkerManager());
 
         clusterManager.setOnClusterItemClickListener { selectedClusterItem ->
             val activeMarkerIcon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_active)
             val normalMarkerIcon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_normal)
             lastSelectedMarker?.setIcon(normalMarkerIcon)
 
-            var mSelectedMarker = customClusterRenderer.getMarker(selectedClusterItem);
 
+            val mSelectedMarker = customClusterRenderer.getMarker(selectedClusterItem);
+
+            mSelectedMarker.hideInfoWindow()
             mSelectedMarker.setIcon(activeMarkerIcon)
             lastSelectedMarker = mSelectedMarker
 
@@ -219,11 +230,6 @@ class MainActivity : AppCompatActivity(),
                 }
             }
             return@setOnClusterItemClickListener false
-        }
-
-        map.setOnMapClickListener{
-            val normalMarkerIcon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_normal)
-            lastSelectedMarker?.setIcon(normalMarkerIcon)
         }
 
         map.setOnCameraIdleListener {
@@ -284,8 +290,22 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
+    private fun addItemsToMap(){
+        for (betshop in betshopsList.betshops) {
+            clusterManager.addItem(
+                MyClusterItem(
+                    betshop.location.lat,
+                    betshop.location.lng,
+                    betshop.name,
+                    betshop.address
+                )
+            )
+        }
+    }
+
     override fun onDismiss(dialog: DialogInterface?) {
-        println("DIALOG TEST")
+        val normalMarkerIcon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_normal)
+        lastSelectedMarker?.setIcon(normalMarkerIcon)
     }
 
 }

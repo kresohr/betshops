@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import com.ikresimir.betshops.api.ApiRequests
 import com.ikresimir.betshops.model.BetshopsList
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -20,36 +21,37 @@ import retrofit2.converter.gson.GsonConverterFactory
 const val BASE_URL = "https://interview.superology.dev/"
 
 class Repository {
-    var betshopsList = BetshopsList(arrayOf(),0)
+    var betshopsList = BetshopsList(arrayOf(), 0)
 
-    fun getBetshops(){
+    @OptIn(DelicateCoroutinesApi::class)
+    fun getBetshops() {
 
         /** Bounding box consists of 4 different coordinates
          *  Lat, Lng from NorthEast and Lat,Lng from SouthWest
          *  Values specified below are enough to cover a bit more than "Germany" region
-         *  In case if Betshop opens more locations, boundingBox coordinates can be expanded as well
+         *  In case if "Betshop" opens more locations, boundingBox coordinates can be expanded as well
          */
-        var northEastLat = 56.043664
-        var northEastLng = 18.864658
-        var southWestLat = 45.115208
-        var southWestLng = 1.450694
+        val northEastLat = 56.043664
+        val northEastLng = 18.864658
+        val southWestLat = 45.115208
+        val southWestLng = 1.450694
 
-            val api =
-                Retrofit.Builder()
-                    .baseUrl(BASE_URL)
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build()
-                    .create(ApiRequests::class.java)
+        val api =
+            Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+                .create(ApiRequests::class.java)
 
-                GlobalScope.launch(Dispatchers.IO) {
-                    val response = api.getBetShops(
-                        BASE_URL + "betshops?boundingBox=" + northEastLat + "," + northEastLng + "," + southWestLat + "," + southWestLng
-                    ).awaitResponse()
-                    if (response.isSuccessful) {
-                        betshopsList = response.body()!!
-                    }
-                }
+        GlobalScope.launch(Dispatchers.IO) {
+            val response = api.getBetShops(
+                BASE_URL + "betshops?boundingBox=" + northEastLat + "," + northEastLng + "," + southWestLat + "," + southWestLng
+            ).awaitResponse()
+            if (response.isSuccessful) {
+                betshopsList = response.body()!!
             }
+        }
+    }
 
     @SuppressLint("MissingPermission")
     fun isOnline(context: Context): Boolean {

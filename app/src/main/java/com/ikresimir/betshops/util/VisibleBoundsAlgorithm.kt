@@ -24,14 +24,14 @@ class VisibleBoundsAlgorithm<T : ClusterItem?>(private val map: GoogleMap) :
         quadTree: PointQuadTree<QuadItem<T>>,
         mapZoom: Float
     ): Collection<QuadItem<T>> {
-        val oldMillis = System.currentTimeMillis() //Getting time before operations
+        val oldMillis = System.currentTimeMillis() // Getting time before operations
 
         //Getting all items from QuadTree
         val items: MutableList<QuadItem<T>> = ArrayList(quadTree.search(Bounds(0.0, 1.0, 0.0, 1.0)))
         val itemIterator = items.listIterator()
         while (itemIterator.hasNext()) {
             val item = itemIterator.next()
-            if (!bounds.contains(item.position)) { //if map do not contain item on this position remove it
+            if (!bounds.contains(item.position)) { // If map does not contain item on this position remove it
                 itemIterator.remove()
             }
         }
@@ -47,9 +47,6 @@ class VisibleBoundsAlgorithm<T : ClusterItem?>(private val map: GoogleMap) :
         return items //Returning new massive of items
     }
 
-    /**
-     * Call this before clustering.
-     */
     fun updateBounds() {
         bounds = map.projection.visibleRegion.latLngBounds
     }
