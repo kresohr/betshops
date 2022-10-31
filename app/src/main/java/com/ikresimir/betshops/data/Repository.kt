@@ -1,19 +1,22 @@
 package com.ikresimir.betshops.data
 
 import android.annotation.SuppressLint
+
 import android.content.Context
+
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.os.Build
+
 import android.util.Log
-import android.widget.Toast
-import androidx.annotation.RequiresApi
+
 import com.ikresimir.betshops.api.ApiRequests
 import com.ikresimir.betshops.model.BetshopsList
+
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+
 import retrofit2.Retrofit
 import retrofit2.awaitResponse
 import retrofit2.converter.gson.GsonConverterFactory

@@ -2,18 +2,13 @@ package com.ikresimir.betshops.view
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Dialog
 import android.content.*
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.Bundle
-import android.provider.Settings
 import com.ikresimir.betshops.R
-import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.ViewGroup
-import android.view.Window
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -24,7 +19,6 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.*
 import com.google.maps.android.clustering.ClusterManager
-import com.google.maps.android.clustering.view.DefaultClusterRenderer
 import com.ikresimir.betshops.data.Repository
 import com.ikresimir.betshops.model.BetshopsList
 import com.ikresimir.betshops.model.MyClusterItem
@@ -54,7 +48,7 @@ class MainActivity : AppCompatActivity(),
         setContentView(R.layout.activity_main)
 
         if (!isLocationEnabled()) {
-            askForLocationDialog()
+            LocationSettingsDialog(this).askForLocationDialog()
         }
 
         observeLocationSettings()
@@ -96,31 +90,6 @@ class MainActivity : AppCompatActivity(),
 
     }
 
-    private fun askForLocationDialog() {
-        val dialog = Dialog(this)
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-        dialog.setContentView(R.layout.gps_dialog)
-
-        val yesButton: TextView = dialog.findViewById(R.id.btnYes)
-        val noButton: TextView = dialog.findViewById(R.id.btnNo)
-
-        dialog.show()
-        dialog.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        dialog.window?.attributes?.windowAnimations = R.style.DialogAnimation
-        dialog.window?.setGravity(Gravity.CENTER)
-
-        noButton.setOnClickListener {
-            dialog.dismiss()
-        }
-        yesButton.setOnClickListener {
-            startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-            dialog.dismiss()
-        }
-    }
-
     private fun openLocationDetailsDialog(
         lat: Double,
         lng: Double,
@@ -129,7 +98,7 @@ class MainActivity : AppCompatActivity(),
         city: String,
         county: String
     ) {
-        var locationDetailsDialog = LocationDetailsDialog(this, this)
+        val locationDetailsDialog = LocationDetailsDialog(this, this)
         locationDetailsDialog.showLocationDetailsDialog(lat, lng, name, address, city, county)
     }
 
@@ -165,7 +134,7 @@ class MainActivity : AppCompatActivity(),
             }
     }
 
-    @SuppressLint("MissingPermission")
+    @SuppressLint("MissingPermission", "PotentialBehaviorOverride")
     override fun onMapReady(googleMap: GoogleMap) {
 
         map = googleMap
@@ -179,6 +148,7 @@ class MainActivity : AppCompatActivity(),
         requestLocationPermission()
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     @SuppressLint("PotentialBehaviorOverride")
     private fun setUpClusterMap() {
         // Custom algorithm for clustering (Uses quad tree)
@@ -192,11 +162,11 @@ class MainActivity : AppCompatActivity(),
         GlobalScope.launch(Dispatchers.Main) {
             delay(4000L)
             if (betshopsList.count != 0){
-                addItemsToMap()
+                addMarkersOnMap()
             }
             else{
                 delay(3000L)
-                addItemsToMap()
+                addMarkersOnMap()
             }
 
         }
@@ -205,21 +175,16 @@ class MainActivity : AppCompatActivity(),
         val customClusterRenderer = CustomClusterRenderer(this,map,clusterManager)
         clusterManager.renderer = customClusterRenderer
         clusterManager.markerCollection.setInfoWindowAdapter(CustomInfoWindow(LayoutInflater.from(this)))
-        map.setInfoWindowAdapter(clusterManager.getMarkerManager());
+        map.setInfoWindowAdapter(clusterManager.getMarkerManager())
 
         clusterManager.setOnClusterItemClickListener { selectedClusterItem ->
             val activeMarkerIcon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_active)
-            val normalMarkerIcon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_normal)
-            lastSelectedMarker?.setIcon(normalMarkerIcon)
 
-
-            val mSelectedMarker = customClusterRenderer.getMarker(selectedClusterItem);
-
-            mSelectedMarker.hideInfoWindow()
+            val mSelectedMarker = customClusterRenderer.getMarker(selectedClusterItem)
             mSelectedMarker.setIcon(activeMarkerIcon)
             lastSelectedMarker = mSelectedMarker
 
-            // If cluster item has been selected, find matching items by lat & long in betshops and pass details to dialog
+            // If cluster item has been selected, find it in the list by lat & long and pass the details to dialog
             for (betshop in betshopsList.betshops) {
                 if (betshop.location.lat == selectedClusterItem.position.latitude && betshop.location.lng == selectedClusterItem.position.longitude) {
                     openLocationDetailsDialog(
@@ -268,6 +233,25 @@ class MainActivity : AppCompatActivity(),
         map.isMyLocationEnabled = true
     }
 
+    private fun addMarkersOnMap(){
+        for (betshop in betshopsList.betshops) {
+            clusterManager.addItem(
+                MyClusterItem(
+                    betshop.location.lat,
+                    betshop.location.lng,
+                    betshop.name,
+                    betshop.address
+                )
+            )
+        }
+    }
+
+    // After the LocationDetailsDialog has been dismissed, return marker icon to normal.
+    override fun onDismiss(dialog: DialogInterface?) {
+        val normalMarkerIcon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_normal)
+        lastSelectedMarker?.setIcon(normalMarkerIcon)
+    }
+
     @SuppressLint("MissingPermission")
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -288,24 +272,6 @@ class MainActivity : AppCompatActivity(),
             centerMapOnUser()
             return
         }
-    }
-
-    private fun addItemsToMap(){
-        for (betshop in betshopsList.betshops) {
-            clusterManager.addItem(
-                MyClusterItem(
-                    betshop.location.lat,
-                    betshop.location.lng,
-                    betshop.name,
-                    betshop.address
-                )
-            )
-        }
-    }
-
-    override fun onDismiss(dialog: DialogInterface?) {
-        val normalMarkerIcon: BitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.ic_pin_normal)
-        lastSelectedMarker?.setIcon(normalMarkerIcon)
     }
 
 }

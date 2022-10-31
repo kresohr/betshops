@@ -99,6 +99,7 @@
         android:src="@drawable/ic_bet_shop_hours"
         app:layout_constraintStart_toStartOf="@id/ic_phone"
         app:layout_constraintTop_toTopOf="@id/txtOpenHours"
+        app:layout_constraintBottom_toBottomOf="@id/txtOpenHours"
         app:tint="@color/green" />
 
     <TextView
@@ -106,7 +107,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="@dimen/margin_large"
-        android:layout_marginTop="@dimen/margin_normal"
+        android:layout_marginTop="@dimen/margin_large"
         android:text="@string/text_open_now"
         android:textAlignment="center"
         android:textColor="@color/black"
